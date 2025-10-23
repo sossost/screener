@@ -16,3 +16,11 @@ export function formatNumber(v: string | number | null): string {
   if (abs >= 1e3) return format(n, 1e3, "K");
   return Number.isInteger(n) ? n.toString() : n.toFixed(2);
 }
+
+export function formatPercent(value: any, decimals = 1): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "-";
+
+  // 소수점 고정 후 불필요한 .0 제거
+  return n.toFixed(decimals).replace(/\.0+$/, "") + "%";
+}

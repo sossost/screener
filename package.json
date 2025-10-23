@@ -8,8 +8,11 @@
     "start": "next start",
     "db:gen": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "etl:once": "tsx src/etl/run-once.ts",
-    "etl:batch": "tsx src/etl/run-batch.ts"
+    "etl:symbols": "tsx src/etl/jobs/load-nasdaq-symbols.ts",
+    "etl:ratios": "tsx src/etl/jobs/load-ratios.ts",
+    "etl:daily-prices": "tsx src/etl/jobs/load-daily-prices.ts",
+    "etl:daily-ma": "tsx src/etl/jobs/build-daily-ma.ts",
+    "etl:backfill-daily-ma": "tsx src/etl/jobs/build-daily-ma.ts backfill"
   },
   "dependencies": {
     "axios": "^1.12.2",

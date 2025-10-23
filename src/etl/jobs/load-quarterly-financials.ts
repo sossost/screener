@@ -5,7 +5,7 @@ import { quarterlyFinancials } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { asQuarter, fetchJson, sleep, toStrNum, ensureSymbol } from "../utils";
 
-const API = process.env.DATA_URL! + "/stable";
+const API = process.env.DATA_API! + "/stable";
 const KEY = process.env.FMP_API_KEY!;
 const CONCURRENCY = 4;
 const PAUSE_MS = 150;
