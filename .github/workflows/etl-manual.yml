@@ -43,6 +43,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_API: ${{ secrets.DATA_API }}
+          PGSSLMODE: no-verify
         run: |
           echo "🚀 Starting NASDAQ Symbols ETL (Manual)..."
           yarn etl:symbols
@@ -81,6 +82,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_API: ${{ secrets.DATA_API }}
+          PGSSLMODE: no-verify
         run: |
           echo "🚀 Starting Daily Prices ETL (Manual)..."
           yarn etl:daily-prices
@@ -118,6 +120,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          PGSSLMODE: no-verify
         run: |
           echo "🚀 Starting Daily MA ETL (Manual)..."
           if [ "${{ github.event.inputs.backfill }}" == "true" ]; then
@@ -161,6 +164,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_API: ${{ secrets.DATA_API }}
+          PGSSLMODE: no-verify
         run: |
           echo "🚀 Starting Financial Ratios ETL (Manual)..."
           yarn etl:ratios

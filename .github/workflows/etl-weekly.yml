@@ -42,6 +42,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_API: ${{ secrets.DATA_API }}
+          PGSSLMODE: no-verify
         run: |
           echo "🚀 Starting NASDAQ Symbols ETL..."
           yarn etl:symbols
@@ -80,6 +81,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_API: ${{ secrets.DATA_API }}
+          PGSSLMODE: no-verify
         run: |
           echo "🚀 Starting Financial Ratios ETL..."
           yarn etl:ratios
