@@ -1,0 +1,114 @@
+name: Daily ETL Pipeline
+
+on:
+  schedule:
+    # 매일 오전 6시 (UTC) 일일 주가 데이터 수집
+    - cron: "0 6 * * *"
+    # 매일 오전 8시 이동평균선 계산
+    - cron: "0 8 * * *"
+  workflow_dispatch: # 수동 실행 가능
+    inputs:
+      job_type:
+        description: 'ETL 작업 타입 선택'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - daily-prices
+          - daily-ma
+
+jobs:
+  etl-daily-prices:
+    if: github.event.schedule == '0 6 * * *' || github.event.inputs.job_type == 'daily-prices' || github.event.inputs.job_type == 'all'
+    runs-on: ubuntu-latest
+    name: Daily Prices ETL
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Daily Prices ETL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: |
+          echo "🚀 Starting Daily Prices ETL..."
+          yarn etl:daily-prices
+          echo "✅ Daily Prices ETL completed!"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-prices-logs
+          path: |
+            *.log
+            logs/
+
+  etl-daily-ma:
+    if: github.event.schedule == '0 8 * * *' || github.event.inputs.job_type == 'daily-ma' || github.event.inputs.job_type == 'all'
+    runs-on: ubuntu-latest
+    name: Daily MA ETL
+    needs: etl-daily-prices
+    if: always() && (needs.etl-daily-prices.result == 'success' || needs.etl-daily-prices.result == 'skipped')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Daily MA ETL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: |
+          echo "🚀 Starting Daily MA ETL..."
+          yarn etl:daily-ma
+          echo "✅ Daily MA ETL completed!"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-ma-logs
+          path: |
+            *.log
+            logs/
+
+  notify-completion:
+    if: always()
+    runs-on: ubuntu-latest
+    name: Notify Completion
+    needs: [etl-daily-prices, etl-daily-ma]
+    
+    steps:
+      - name: Notify Success
+        if: needs.etl-daily-prices.result == 'success' && needs.etl-daily-ma.result == 'success'
+        run: |
+          echo "✅ Daily ETL Pipeline completed successfully!"
+          echo "📊 Daily prices and moving averages updated"
+
+      - name: Notify Failure
+        if: needs.etl-daily-prices.result == 'failure' || needs.etl-daily-ma.result == 'failure'
+        run: |
+          echo "❌ Daily ETL Pipeline failed!"
+          echo "🔍 Check the logs for details"
+          exit 1
