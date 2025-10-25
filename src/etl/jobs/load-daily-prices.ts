@@ -21,7 +21,7 @@ const KEY = process.env.FMP_API_KEY!;
 const CONCURRENCY = 3;
 const PAUSE_MS = 300;
 
-async function loadOne(sym: string, N = 20) {
+async function loadOne(sym: string, N = 200) {
   console.log(`📊 Loading prices for ${sym} (${N} days)`);
 
   // full=5000개, slice도 가능. 여기선 최근 n일만.

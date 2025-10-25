@@ -49,7 +49,7 @@ async function main() {
   const list = await retryApiCall(
     () =>
       fetchJson<SymbolRow[]>(
-        `${API}/company-screener?exchange=NASDAQ&limit=3000&apikey=${KEY}`
+        `${API}/company-screener?exchange=NASDAQ&limit=10000&apikey=${KEY}`
       ),
     DEFAULT_RETRY_OPTIONS
   );
@@ -125,20 +125,7 @@ async function main() {
         .onConflictDoUpdate({
           target: symbols.symbol,
           set: {
-            companyName: row.companyName,
-            marketCap: row.marketCap,
-            sector: row.sector,
-            industry: row.industry,
-            beta: row.beta,
-            price: row.price,
-            lastAnnualDividend: row.lastAnnualDividend,
-            volume: row.volume,
-            exchange: row.exchange,
-            exchangeShortName: row.exchangeShortName,
-            country: row.country,
-            isEtf: row.isEtf,
-            isFund: row.isFund,
-            isActivelyTrading: row.isActivelyTrading,
+            ...row,
             createdAt: new Date(),
           },
         });
