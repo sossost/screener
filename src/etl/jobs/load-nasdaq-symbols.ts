@@ -125,7 +125,20 @@ async function main() {
         .onConflictDoUpdate({
           target: symbols.symbol,
           set: {
-            ...row,
+            companyName: row.companyName,
+            marketCap: row.marketCap,
+            sector: row.sector,
+            industry: row.industry,
+            beta: row.beta,
+            price: row.price,
+            lastAnnualDividend: row.lastAnnualDividend,
+            volume: row.volume,
+            exchange: row.exchange,
+            exchangeShortName: row.exchangeShortName,
+            country: row.country,
+            isEtf: row.isEtf,
+            isFund: row.isFund,
+            isActivelyTrading: row.isActivelyTrading,
             createdAt: new Date(),
           },
         });
