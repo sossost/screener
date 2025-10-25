@@ -30,10 +30,12 @@ export async function GET(req: Request) {
           q.revenue::numeric          AS revenue,
           q.operating_income::numeric AS op_income
         FROM quarterly_financials q
-        WHERE q.symbol ~ '^[A-Z0-9\\.]+$'
-          AND LENGTH(q.symbol) <= 5
-          AND q.symbol NOT LIKE '%.U' AND q.symbol NOT LIKE '%U'
-          AND q.symbol NOT LIKE '%.W%' AND q.symbol NOT LIKE '%W' AND q.symbol NOT LIKE '%WS'
+        WHERE q.symbol ~ '^[A-Z]{1,5}$'
+          AND q.symbol NOT LIKE '%W'
+          AND q.symbol NOT LIKE '%X'
+          AND q.symbol NOT LIKE '%.%'
+          AND q.symbol NOT LIKE '%U'
+          AND q.symbol NOT LIKE '%WS'
       ),
       ttm AS (
         SELECT

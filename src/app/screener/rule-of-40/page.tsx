@@ -1,23 +1,16 @@
 import React from "react";
 import { Rule40Client } from "./RuleOf40Client";
+import { Navigation } from "@/components/navigation";
 
-const RuleOf40Page = async () => {
-  try {
-    const data = await fetch("http://localhost:3000/api/screener/rule-of-40", {
-      next: {
-        revalidate: 0,
-      },
-      cache: "no-store",
-    }).then((res) => res.json());
-
-    console.log(data);
-
-    return <Rule40Client data={data.companies} />;
-  } catch (error) {
-    console.error(error);
-  }
-
-  return <div>Error</div>;
+const RuleOf40Page = () => {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navigation title="🎯 Rule of 40 스크리너" />
+      <div className="container mx-auto px-4 py-8">
+        <Rule40Client data={[]} />
+      </div>
+    </div>
+  );
 };
 
 export default RuleOf40Page;

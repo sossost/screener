@@ -40,6 +40,13 @@ export async function GET(req: Request) {
           ON pr.symbol = dm.symbol AND pr.date::date = ld.d
         WHERE dm.ma20 IS NOT NULL AND dm.ma50 IS NOT NULL AND dm.ma100 IS NOT NULL AND dm.ma200 IS NOT NULL
           AND dm.ma20 > dm.ma50 AND dm.ma50 > dm.ma100 AND dm.ma100 > dm.ma200
+          -- 정상적인 주식만 필터링 (워런트, 우선주, ETF 등 제외)
+          AND dm.symbol ~ '^[A-Z]{1,5}$'
+          AND dm.symbol NOT LIKE '%W'
+          AND dm.symbol NOT LIKE '%X'
+          AND dm.symbol NOT LIKE '%.%'
+          AND dm.symbol NOT LIKE '%U'
+          AND dm.symbol NOT LIKE '%WS'
       ),
       -- 2) 필수 컷(시총/가격/거래소/거래량) 먼저 가볍게 적용해서 "후보" 축소
       candidates AS (

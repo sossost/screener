@@ -1,24 +1,16 @@
 import React from "react";
 import { GoldenCrossClient } from "./GoldenCrossClient";
+import { Navigation } from "@/components/navigation";
 
-const GoldenCrossPage = async () => {
-  try {
-    const data = await fetch(
-      "http://localhost:3000/api/screener/golden-cross",
-      {
-        next: {
-          revalidate: 0,
-        },
-        cache: "no-store",
-      }
-    ).then((res) => res.json());
-
-    return <GoldenCrossClient data={data.data} />;
-  } catch (error) {
-    console.error(error);
-  }
-
-  return <div>Error</div>;
+const GoldenCrossPage = () => {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navigation title="📈 Golden Cross 스크리너" />
+      <div className="container mx-auto px-4 py-8">
+        <GoldenCrossClient data={[]} />
+      </div>
+    </div>
+  );
 };
 
 export default GoldenCrossPage;

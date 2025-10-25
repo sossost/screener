@@ -30,9 +30,23 @@ async function main() {
     `${API}/company-screener?exchange=NASDAQ&limit=3000&apikey=${KEY}`
   );
 
-  const nasdaq = list.filter(
-    (r) => r.exchange === "NASDAQ" || r.exchangeShortName === "NASDAQ"
-  );
+  const nasdaq = list
+    .filter((r) => r.exchange === "NASDAQ" || r.exchangeShortName === "NASDAQ")
+    .filter((r) => {
+      // 정상적인 주식만 필터링 (워런트, 우선주, ETF 등 제외)
+      const symbol = r.symbol;
+      return (
+        symbol &&
+        /^[A-Z]{1,5}$/.test(symbol) && // 1-5글자 대문자만
+        !symbol.endsWith("W") && // 워런트 제외
+        !symbol.endsWith("X") && // 워런트 제외
+        !symbol.includes(".") && // 점 포함 제외
+        !symbol.endsWith("U") && // 유닛 제외
+        !symbol.endsWith("WS") && // 워런트 제외
+        !r.isEtf && // ETF 제외
+        !r.isFund
+      ); // 펀드 제외
+    });
 
   for (const r of nasdaq) {
     const row = {

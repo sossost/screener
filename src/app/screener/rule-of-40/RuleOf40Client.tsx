@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -23,7 +24,25 @@ type Rule40Company = {
 };
 
 export const Rule40Client = ({ data }: { data: Rule40Company[] }) => {
-  const companies = data;
+  const [companies, setCompanies] = useState<Rule40Company[]>(data);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/screener/rule-of-40");
+      const result = await response.json();
+      setCompanies(result.companies || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   return (
     <Card className="p-4">
@@ -33,6 +52,11 @@ export const Rule40Client = ({ data }: { data: Rule40Company[] }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="text-gray-500">데이터를 불러오는 중...</div>
+          </div>
+        )}
         <Table>
           <TableCaption>
             최근 TTM 매출성장률 + 영업이익률 합산 점수가 40 이상인 기업
@@ -48,47 +72,48 @@ export const Rule40Client = ({ data }: { data: Rule40Company[] }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.map((c) => (
-              <TableRow key={`${c.symbol}-${c.as_of_q}`}>
-                <TableCell className="font-semibold">
-                  <a
-                    href={`https://seekingalpha.com/symbol/${c.symbol}`}
-                    target="_blank"
+            {!loading &&
+              companies.map((c) => (
+                <TableRow key={`${c.symbol}-${c.as_of_q}`}>
+                  <TableCell className="font-semibold">
+                    <a
+                      href={`https://seekingalpha.com/symbol/${c.symbol}`}
+                      target="_blank"
+                    >
+                      {c.symbol}
+                    </a>
+                  </TableCell>
+                  <TableCell>{c.as_of_q}</TableCell>
+                  <TableCell>{formatNumber(c.market_cap)}</TableCell>
+                  <TableCell
+                    className={
+                      Number(c.yoy_ttm_rev_growth_pct) > 0
+                        ? "text-green-600 text-right"
+                        : "text-red-600 text-right"
+                    }
                   >
-                    {c.symbol}
-                  </a>
-                </TableCell>
-                <TableCell>{c.as_of_q}</TableCell>
-                <TableCell>{formatNumber(c.market_cap)}</TableCell>
-                <TableCell
-                  className={
-                    Number(c.yoy_ttm_rev_growth_pct) > 0
-                      ? "text-green-600 text-right"
-                      : "text-red-600 text-right"
-                  }
-                >
-                  {formatPercent(c.yoy_ttm_rev_growth_pct)}
-                </TableCell>
-                <TableCell
-                  className={
-                    Number(c.ttm_op_margin_pct) > 0
-                      ? "text-green-600 text-right"
-                      : "text-red-600 text-right"
-                  }
-                >
-                  {formatPercent(c.ttm_op_margin_pct)}
-                </TableCell>
-                <TableCell
-                  className={
-                    Number(c.rule40_score) >= 40
-                      ? "text-green-700 font-bold text-right"
-                      : "text-gray-600 text-right"
-                  }
-                >
-                  {formatPercent(c.rule40_score)}
-                </TableCell>
-              </TableRow>
-            ))}
+                    {formatPercent(c.yoy_ttm_rev_growth_pct)}
+                  </TableCell>
+                  <TableCell
+                    className={
+                      Number(c.ttm_op_margin_pct) > 0
+                        ? "text-green-600 text-right"
+                        : "text-red-600 text-right"
+                    }
+                  >
+                    {formatPercent(c.ttm_op_margin_pct)}
+                  </TableCell>
+                  <TableCell
+                    className={
+                      Number(c.rule40_score) >= 40
+                        ? "text-green-700 font-bold text-right"
+                        : "text-gray-600 text-right"
+                    }
+                  >
+                    {formatPercent(c.rule40_score)}
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </CardContent>
