@@ -9,9 +9,9 @@ on:
   workflow_dispatch: # 수동 실행 가능
     inputs:
       job_type:
-        description: 'ETL 작업 타입 선택'
+        description: "ETL 작업 타입 선택"
         required: true
-        default: 'all'
+        default: "all"
         type: choice
         options:
           - all
@@ -20,10 +20,10 @@ on:
 
 jobs:
   etl-symbols:
-    if: github.event.schedule == '0 0 * * 1' || github.event.inputs.job_type == 'symbols' || github.event.inputs.job_type == 'all'
+    if: github.event_name == 'schedule' || github.event.inputs.job_type == 'symbols' || github.event.inputs.job_type == 'all'
     runs-on: ubuntu-latest
     name: NASDAQ Symbols ETL
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,6 +41,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          DATA_API: ${{ secrets.DATA_API }}
         run: |
           echo "🚀 Starting NASDAQ Symbols ETL..."
           yarn etl:symbols
@@ -56,12 +57,11 @@ jobs:
             logs/
 
   etl-ratios:
-    if: github.event.schedule == '0 7 * * 0' || github.event.inputs.job_type == 'ratios' || github.event.inputs.job_type == 'all'
     runs-on: ubuntu-latest
     name: Financial Ratios ETL
     needs: etl-symbols
-    if: always() && (needs.etl-symbols.result == 'success' || needs.etl-symbols.result == 'skipped')
-    
+    if: always() && (needs.etl-symbols.result == 'success' || needs.etl-symbols.result == 'skipped') && (github.event_name == 'schedule' || github.event.inputs.job_type == 'ratios' || github.event.inputs.job_type == 'all')
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -79,6 +79,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          DATA_API: ${{ secrets.DATA_API }}
         run: |
           echo "🚀 Starting Financial Ratios ETL..."
           yarn etl:ratios
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Notify Completion
     needs: [etl-symbols, etl-ratios]
-    
+
     steps:
       - name: Notify Success
         if: needs.etl-symbols.result == 'success' && needs.etl-ratios.result == 'success'

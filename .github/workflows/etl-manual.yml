@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       job_type:
-        description: 'ETL 작업 타입 선택'
+        description: "ETL 작업 타입 선택"
         required: true
         type: choice
         options:
@@ -14,7 +14,7 @@ on:
           - ratios
           - all
       backfill:
-        description: '백필 모드 (이동평균만)'
+        description: "백필 모드 (이동평균만)"
         required: false
         type: boolean
         default: false
@@ -24,7 +24,7 @@ jobs:
     if: github.event.inputs.job_type == 'symbols' || github.event.inputs.job_type == 'all'
     runs-on: ubuntu-latest
     name: NASDAQ Symbols ETL
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,6 +42,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          DATA_API: ${{ secrets.DATA_API }}
         run: |
           echo "🚀 Starting NASDAQ Symbols ETL (Manual)..."
           yarn etl:symbols
@@ -57,12 +58,11 @@ jobs:
             logs/
 
   etl-daily-prices:
-    if: github.event.inputs.job_type == 'daily-prices' || github.event.inputs.job_type == 'all'
     runs-on: ubuntu-latest
     name: Daily Prices ETL
     needs: etl-symbols
-    if: always() && (needs.etl-symbols.result == 'success' || needs.etl-symbols.result == 'skipped')
-    
+    if: always() && (needs.etl-symbols.result == 'success' || needs.etl-symbols.result == 'skipped') && (github.event.inputs.job_type == 'daily-prices' || github.event.inputs.job_type == 'all')
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -80,6 +80,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          DATA_API: ${{ secrets.DATA_API }}
         run: |
           echo "🚀 Starting Daily Prices ETL (Manual)..."
           yarn etl:daily-prices
@@ -95,12 +96,11 @@ jobs:
             logs/
 
   etl-daily-ma:
-    if: github.event.inputs.job_type == 'daily-ma' || github.event.inputs.job_type == 'all'
     runs-on: ubuntu-latest
     name: Daily MA ETL
     needs: etl-daily-prices
-    if: always() && (needs.etl-daily-prices.result == 'success' || needs.etl-daily-prices.result == 'skipped')
-    
+    if: always() && (needs.etl-daily-prices.result == 'success' || needs.etl-daily-prices.result == 'skipped') && (github.event.inputs.job_type == 'daily-ma' || github.event.inputs.job_type == 'all')
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -138,12 +138,11 @@ jobs:
             logs/
 
   etl-ratios:
-    if: github.event.inputs.job_type == 'ratios' || github.event.inputs.job_type == 'all'
     runs-on: ubuntu-latest
     name: Financial Ratios ETL
     needs: etl-symbols
-    if: always() && (needs.etl-symbols.result == 'success' || needs.etl-symbols.result == 'skipped')
-    
+    if: always() && (needs.etl-symbols.result == 'success' || needs.etl-symbols.result == 'skipped') && (github.event.inputs.job_type == 'ratios' || github.event.inputs.job_type == 'all')
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -161,6 +160,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          DATA_API: ${{ secrets.DATA_API }}
         run: |
           echo "🚀 Starting Financial Ratios ETL (Manual)..."
           yarn etl:ratios
@@ -180,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Notify Completion
     needs: [etl-symbols, etl-daily-prices, etl-daily-ma, etl-ratios]
-    
+
     steps:
       - name: Check Results
         run: |

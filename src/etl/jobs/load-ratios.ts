@@ -1,13 +1,12 @@
 import "dotenv/config";
 import pLimit from "p-limit";
 import { db } from "@/db/client";
-import { sql, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { asQuarter, fetchJson, sleep, toStrNum } from "../utils";
 import { quarterlyRatios, symbols } from "@/db/schema";
 import {
   validateEnvironmentVariables,
   validateRatioData,
-  validateBatchData,
 } from "../utils/validation";
 import {
   retryApiCall,

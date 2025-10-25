@@ -1,8 +1,8 @@
 // src/etl/jobs/build-daily-ma.ts
 import "dotenv/config";
 import { db } from "@/db/client";
-import { sql, eq } from "drizzle-orm";
-import { dailyMa, symbols } from "@/db/schema";
+import { sql } from "drizzle-orm";
+import { dailyMa } from "@/db/schema";
 import { sleep } from "../utils";
 import {
   validateEnvironmentVariables,
@@ -127,7 +127,9 @@ async function processBatch(symbols: string[], targetDate: string) {
       }
     } catch (error) {
       console.error(`❌ Error processing ${symbol}:`, error);
-      errors.push({ symbol, error: error.message });
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      errors.push({ symbol, error: errorMessage });
     }
 
     await sleep(PAUSE_MS);

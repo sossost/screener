@@ -2,7 +2,7 @@
 import "dotenv/config";
 import pLimit from "p-limit";
 import { db } from "@/db/client";
-import { sql, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { fetchJson, sleep, toStrNum } from "../utils";
 import { dailyPrices, symbols } from "@/db/schema";
 import {

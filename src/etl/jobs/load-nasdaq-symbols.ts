@@ -8,6 +8,7 @@ import {
   validateBatchData,
 } from "../utils/validation";
 import { retryApiCall, DEFAULT_RETRY_OPTIONS } from "../utils/retry";
+import { fetchJson } from "../utils";
 
 const API = process.env.DATA_API! + "/stable";
 const KEY = process.env.FMP_API_KEY!;

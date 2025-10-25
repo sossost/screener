@@ -100,7 +100,7 @@ async function getDataQualityMetrics(days: number) {
   };
 }
 
-async function getPerformanceMetrics(days: number) {
+async function getPerformanceMetrics(_days: number) {
   // 시뮬레이션된 성능 메트릭
   return {
     avgExecutionTime: {

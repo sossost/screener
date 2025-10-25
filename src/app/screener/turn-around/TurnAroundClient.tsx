@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatNumber } from "@/utils/format";
-import dayjs from "dayjs";
 
 type Company = {
   symbol: string;

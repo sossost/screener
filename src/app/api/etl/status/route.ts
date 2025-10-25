@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { symbols, dailyPrices, dailyMa, quarterlyRatios } from "@/db/schema";
 import { count, max, sql } from "drizzle-orm";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // 심볼 수 조회
     const symbolCountResult = await db.select({ count: count() }).from(symbols);
