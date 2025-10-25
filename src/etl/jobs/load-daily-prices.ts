@@ -133,8 +133,7 @@ async function main() {
   const activeSymbols = await db
     .select({ symbol: symbols.symbol })
     .from(symbols)
-    .where(eq(symbols.isActivelyTrading, true))
-    .limit(1000); // GitHub Actions 제한 고려
+    .where(eq(symbols.isActivelyTrading, true));
 
   const syms: string[] = activeSymbols.map((s) => s.symbol);
 
