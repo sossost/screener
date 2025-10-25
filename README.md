@@ -1,37 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📈 Stock Screener
 
-## Getting Started
+개인 투자용으로 만든 주식 스크리닝 도구입니다. 기술적 분석과 펀더멘털 분석을 간단하게 확인할 수 있어요.
 
-First, run the development server:
+## 🎯 뭐가 있나요?
+
+### 📈 Golden Cross 스크리너
+
+- 이동평균선이 정배열(MA20 > MA50 > MA100 > MA200)인 종목들
+- 최근에 갑자기 정배열로 바뀐 종목들도 따로 볼 수 있음
+
+### 🎯 Rule of 40 스크리너
+
+- SaaS 기업들 중에서 성장률 + 수익성이 좋은 애들
+- (성장률 + EBITDA 마진) ≥ 40% 조건
+
+### 🔄 Turn-Around 스크리너
+
+- 손실에서 수익으로 바뀐 기업들
+- 회생하는 기업들 찾기
+
+## 🛠️ 뭘 썼나요?
+
+- **Next.js 15** + **React 19** + **TypeScript**
+- **Tailwind CSS** + **Shadcn/ui** (UI가 예쁘게 나오게)
+- **PostgreSQL** + **Drizzle ORM** (데이터 저장)
+- **FMP API** (주식 데이터 가져오기)
+- **Vercel** (배포)
+
+## 📊 데이터는 어떻게?
+
+1. **NASDAQ 심볼들** 가져오기
+2. **일일 주가** 데이터 수집
+3. **분기별 재무** 데이터 수집
+4. **이동평균선** 계산
+5. **비정상 종목들** (워런트, ETF 등) 제거
+
+## 🚀 어떻게 실행하나요?
+
+### 1. 클론하고 설치
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/your-username/screener.git
+cd screener
+yarn install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 환경변수 설정
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env.local` 파일 만들고:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+FMP_API_KEY=your_fmp_api_key_here
+DATABASE_URL=postgresql://username:password@localhost:5432/screener
+```
 
-## Learn More
+### 3. 데이터베이스 설정
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+yarn db:push
+yarn etl:symbols
+yarn etl:daily-prices
+yarn etl:daily-ma
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. 실행
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+yarn dev
+```
 
-## Deploy on Vercel
+## 📝 사용법
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- 메인 페이지에서 원하는 스크리너 클릭
+- Golden Cross는 "전체 정배열" vs "최근 전환" 토글 가능
+- 데이터는 매일 업데이트 (수동으로 `yarn etl:daily-prices` 실행)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# screener
+## 🔧 유용한 명령어들
+
+```bash
+yarn dev                    # 개발 서버
+yarn build                  # 빌드
+yarn etl:daily-prices       # 주가 업데이트
+yarn etl:daily-ma          # 이동평균선 계산
+yarn etl:cleanup-invalid-symbols  # 비정상 종목 정리
+```
+
+## 📁 폴더 구조
+
+```
+src/
+├── app/                    # Next.js 페이지들
+│   ├── api/               # API 엔드포인트
+│   └── screener/          # 스크리너 페이지들
+├── components/            # 재사용 컴포넌트
+├── db/                   # 데이터베이스
+├── etl/                  # 데이터 처리 작업들
+└── utils/               # 유틸리티
+```
