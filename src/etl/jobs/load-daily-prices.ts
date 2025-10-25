@@ -21,7 +21,12 @@ const KEY = process.env.FMP_API_KEY!;
 const CONCURRENCY = 3;
 const PAUSE_MS = 300;
 
-async function loadOne(sym: string, N = 200) {
+// 일반 모드: 최근 5일만 (주말 + 휴일 고려)
+// 백필 모드: 200일
+const DEFAULT_DAYS = 5;
+const BACKFILL_DAYS = 200;
+
+async function loadOne(sym: string, N: number) {
   console.log(`📊 Loading prices for ${sym} (${N} days)`);
 
   // full=5000개, slice도 가능. 여기선 최근 n일만.
@@ -115,6 +120,15 @@ async function main() {
     console.warn("⚠️ Environment warnings:", envValidation.warnings);
   }
 
+  // 백필 모드 확인
+  const args = process.argv.slice(2);
+  const isBackfill = args.includes("backfill");
+  const daysToLoad = isBackfill ? BACKFILL_DAYS : DEFAULT_DAYS;
+
+  console.log(
+    `📊 Mode: ${isBackfill ? "BACKFILL" : "INCREMENTAL"} (${daysToLoad} days)`
+  );
+
   // 활성 심볼들 가져오기
   const activeSymbols = await db
     .select({ symbol: symbols.symbol })
@@ -141,7 +155,7 @@ async function main() {
     syms.map((s) =>
       limit(async () => {
         try {
-          await loadOne(s);
+          await loadOne(s, daysToLoad);
           ok++;
           if (ok % 50 === 0) {
             console.log(
@@ -159,8 +173,14 @@ async function main() {
   );
 
   const totalTime = Date.now() - startTime;
+  const totalRecords = ok * daysToLoad;
+
   console.log(`✅ Daily Prices ETL completed!`);
+  console.log(`📊 Mode: ${isBackfill ? "BACKFILL" : "INCREMENTAL"}`);
   console.log(`📊 Results: ${ok} successful, ${skip} skipped`);
+  console.log(
+    `📊 Estimated records processed: ~${totalRecords.toLocaleString()}`
+  );
   console.log(`⏱️ Total time: ${Math.round(totalTime / 1000)}s`);
   console.log(
     `📈 Average time per symbol: ${Math.round(totalTime / syms.length)}ms`
