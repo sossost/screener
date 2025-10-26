@@ -303,7 +303,7 @@ export function validateBatchData(
 
   if (invalidCount > 0) {
     errors.push(
-      `배치 검증 실패: ${invalidCount}/${dataArray.length} 항목이 유효하지 않습니다`
+      `배치 검증 실패: ${validCount}/${dataArray.length} 항목 유효, ${invalidCount}개 항목 실패`
     );
   }
 

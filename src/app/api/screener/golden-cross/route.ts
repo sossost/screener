@@ -2,10 +2,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
-import { CACHE_TTL } from "@/lib/cache-config";
+
+// 동적 라우트 강제 (쿼리 파라미터 사용)
+export const dynamic = 'force-dynamic';
 
 // 캐싱 설정: 24시간 (종가 기준 데이터, 하루 1회 갱신)
-export const revalidate = CACHE_TTL.GOLDEN_CROSS;
+// Next.js는 정적 분석을 위해 리터럴 값만 허용 (계산식/상수 참조 불가)
+export const revalidate = 86400; // 1일 (60 * 60 * 24초)
 
 export async function GET(req: Request) {
   try {
@@ -18,6 +21,7 @@ export async function GET(req: Request) {
     const minPrice = Number(searchParams.get("minPrice") ?? 0);
     const minAvgVol = Number(searchParams.get("minAvgVol") ?? 0);
     const allowOTC = searchParams.get("allowOTC") === "true";
+    const profitability = searchParams.get("profitability") ?? "all"; // 수익성 필터
 
     const rows = await db.execute(sql`
       WITH last_d AS (
@@ -107,31 +111,83 @@ export async function GET(req: Request) {
         cand.symbol,
         cand.d            AS trade_date,
         cand.close        AS last_close,
-        cand.ma20, cand.ma50, cand.ma100, cand.ma200,
-        s.market_cap
+        s.market_cap,
+        -- 재무 데이터 (최근 4개 분기)
+        qf.quarterly_data,
+        qf.eps_q1         AS latest_eps
       FROM candidates cand
       LEFT JOIN prev_status ps ON ps.symbol = cand.symbol
       LEFT JOIN symbols s ON s.symbol = cand.symbol
-      -- justTurned: 최근 lookbackDays일 이내에 정배열이 아닌 날이 하나라도 있어야 함
-      ${
-        justTurned
-          ? sql`WHERE COALESCE(ps.non_ordered_days_count, 0) > 0`
-          : sql``
-      }
+      -- 최근 4개 분기 재무 데이터 JOIN
+      LEFT JOIN LATERAL (
+        SELECT
+          json_agg(
+            json_build_object(
+              'period_end_date', period_end_date,
+              'revenue', revenue::numeric,
+              'eps_diluted', eps_diluted::numeric
+            ) ORDER BY period_end_date DESC
+          ) as quarterly_data,
+          (
+            SELECT eps_diluted::numeric
+            FROM quarterly_financials
+            WHERE symbol = cand.symbol
+              AND eps_diluted IS NOT NULL
+            ORDER BY period_end_date DESC
+            LIMIT 1
+          ) as eps_q1
+        FROM (
+          SELECT 
+            period_end_date,
+            revenue,
+            eps_diluted
+          FROM quarterly_financials
+          WHERE symbol = cand.symbol
+          ORDER BY period_end_date DESC
+          LIMIT 4
+        ) recent_quarters
+      ) qf ON true
+      WHERE 1=1
+        -- justTurned: 최근 lookbackDays일 이내에 정배열이 아닌 날이 하나라도 있어야 함
+        ${
+          justTurned
+            ? sql`AND COALESCE(ps.non_ordered_days_count, 0) > 0`
+            : sql``
+        }
+        -- 수익성 필터 (최근 분기 EPS 기준)
+        ${
+          profitability === "profitable"
+            ? sql`AND qf.eps_q1 IS NOT NULL AND qf.eps_q1 > 0`
+            : profitability === "unprofitable"
+            ? sql`AND qf.eps_q1 IS NOT NULL AND qf.eps_q1 < 0`
+            : sql``
+        }
       ORDER BY s.market_cap DESC NULLS LAST, cand.symbol ASC;
     `);
 
-    const tradeDate =
-      rows.rows.length > 0 ? (rows.rows[0] as any).trade_date : null;
+    type QueryResult = {
+      symbol: string;
+      trade_date: string;
+      last_close: number;
+      market_cap: number | null;
+      quarterly_data: any[] | null;
+      latest_eps: number | null;
+    };
 
-    const data = (rows.rows as any[]).map((r) => ({
+    const results = rows.rows as QueryResult[];
+    const tradeDate = results.length > 0 ? results[0].trade_date : null;
+
+    const data = results.map((r) => ({
       symbol: r.symbol,
-      last_close: r.last_close,
-      ma20: r.ma20,
-      ma50: r.ma50,
-      ma100: r.ma100,
-      ma200: r.ma200,
       market_cap: r.market_cap,
+      last_close: r.last_close,
+      quarterly_financials: r.quarterly_data || [],
+      profitability_status:
+        r.latest_eps !== null && r.latest_eps > 0
+          ? "profitable"
+          : r.latest_eps !== null && r.latest_eps < 0
+          ? "unprofitable"
+          : "unknown",
       ordered: true,
       just_turned: justTurned,
     }));

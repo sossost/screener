@@ -1,23 +1,26 @@
 import React from "react";
-import { GoldenCrossClient } from "./GoldenCrossClient";
+import GoldenCrossClient from "./GoldenCrossClient";
 import { CACHE_TAGS } from "@/lib/cache-config";
 
 type SearchParams = {
   justTurned?: string;
   lookbackDays?: string;
+  profitability?: string;
 };
 
 async function fetchGoldenCrossData(searchParams: SearchParams) {
   const justTurned = searchParams.justTurned === "true";
   const lookbackDays = searchParams.lookbackDays || "10";
+  const profitability = searchParams.profitability || "all";
 
   const params = new URLSearchParams({
     justTurned: justTurned.toString(),
     lookbackDays: lookbackDays,
+    profitability: profitability,
   });
 
-  // 캐시 태그 생성 (필터별로 다른 태그)
-  const cacheTag = `golden-cross-${justTurned}-${lookbackDays}`;
+  // 캐시 태그 생성 (필터별로 다른 태그 - profitability 포함)
+  const cacheTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}`;
 
   // 서버 사이드에서 내부 API 호출 (localhost 사용)
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";

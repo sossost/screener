@@ -38,7 +38,7 @@ async function getMetricsForPeriod(period: string) {
   const dataQuality = await getDataQualityMetrics(days);
 
   // 성능 메트릭
-  const performance = await getPerformanceMetrics(days);
+  const performance = await getPerformanceMetrics();
 
   // 시스템 메트릭
   const system = await getSystemMetrics();
@@ -100,7 +100,7 @@ async function getDataQualityMetrics(days: number) {
   };
 }
 
-async function getPerformanceMetrics(_days: number) {
+async function getPerformanceMetrics() {
   // 시뮬레이션된 성능 메트릭
   return {
     avgExecutionTime: {

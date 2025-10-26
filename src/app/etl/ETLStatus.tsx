@@ -10,7 +10,6 @@ export function ETLStatus() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        console.log("Fetching ETL status...");
         const response = await fetch("/api/etl/status", {
           cache: "no-store",
         });
@@ -20,7 +19,6 @@ export function ETLStatus() {
         }
 
         const result = await response.json();
-        console.log("ETL status result:", result);
         setStatus(result);
         setError(null);
       } catch (error) {

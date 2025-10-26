@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { symbols, dailyPrices, dailyMa, quarterlyRatios } from "@/db/schema";
 import { count, max, sql } from "drizzle-orm";
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // 심볼 수 조회
     const symbolCountResult = await db.select({ count: count() }).from(symbols);

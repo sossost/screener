@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
     "db:gen": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -14,9 +14,11 @@
     "etl:backfill-daily-prices": "tsx src/etl/jobs/load-daily-prices.ts backfill",
     "etl:daily-ma": "tsx src/etl/jobs/build-daily-ma.ts",
     "etl:backfill-daily-ma": "tsx src/etl/jobs/build-daily-ma.ts backfill",
-    "etl:cleanup-invalid-symbols": "tsx src/etl/jobs/cleanup-invalid-symbols.ts"
+    "etl:cleanup-invalid-symbols": "tsx src/etl/jobs/cleanup-invalid-symbols.ts",
+    "etl:quarterly-financials": "tsx src/etl/jobs/load-quarterly-financials.ts"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

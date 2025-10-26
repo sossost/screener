@@ -2,10 +2,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
-import { CACHE_TTL } from "@/lib/cache-config";
+
+// 동적 라우트 강제 (쿼리 파라미터 사용)
+export const dynamic = 'force-dynamic';
 
 // 캐싱 설정: 24시간 (분기별 재무 데이터 기반)
-export const revalidate = CACHE_TTL.TURNED_PROFITABLE;
+// Next.js는 정적 분석을 위해 리터럴 값만 허용 (계산식/상수 참조 불가)
+export const revalidate = 86400; // 1일 (60 * 60 * 24초)
 
 export async function GET(req: Request) {
   try {
