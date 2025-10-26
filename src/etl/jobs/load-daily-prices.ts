@@ -24,7 +24,7 @@ const PAUSE_MS = 300;
 // 일반 모드: 최근 5일만 (주말 + 휴일 고려)
 // 백필 모드: 200일
 const DEFAULT_DAYS = 5;
-const BACKFILL_DAYS = 200;
+const BACKFILL_DAYS = 250;
 
 async function loadOne(sym: string, N: number) {
   console.log(`📊 Loading prices for ${sym} (${N} days)`);

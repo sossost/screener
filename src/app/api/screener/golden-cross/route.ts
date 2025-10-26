@@ -8,6 +8,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const justTurned = searchParams.get("justTurned") === "true";
+    const lookbackDays = Number(searchParams.get("lookbackDays") ?? 10); // 기본 10일
+    const maxRn = 1 + lookbackDays; // rn 범위 계산
     const minMcap = Number(searchParams.get("minMcap") ?? 0);
     const minPrice = Number(searchParams.get("minPrice") ?? 0);
     const minAvgVol = Number(searchParams.get("minAvgVol") ?? 0);
@@ -86,40 +88,56 @@ export async function GET(req: Request) {
           WHERE dp.date::date >= ( (SELECT d FROM last_d) - INTERVAL '220 day' )
         ) b
       ),
-      prev AS (
-        SELECT symbol, ma20, ma50, ma100, ma200
+      -- 과거 lookbackDays일 범위에서 정배열이 아닌 날의 개수를 체크
+      prev_status AS (
+        SELECT 
+          symbol,
+          COUNT(*) FILTER (
+            WHERE NOT (ma20 > ma50 AND ma50 > ma100 AND ma100 > ma200)
+          ) AS non_ordered_days_count
         FROM prev_ma
-        WHERE rn = 2  -- 전일(이전 영업일)
+        WHERE rn BETWEEN 2 AND ${maxRn}  -- 최근 N일
+        GROUP BY symbol
       )
       SELECT
         cand.symbol,
         cand.d            AS trade_date,
         cand.close        AS last_close,
-        cand.ma20, cand.ma50, cand.ma100, cand.ma200
+        cand.ma20, cand.ma50, cand.ma100, cand.ma200,
+        s.market_cap
       FROM candidates cand
-      LEFT JOIN prev pv ON pv.symbol = cand.symbol
-      -- justTurned: 전일은 정배열이 아니어야 함
+      LEFT JOIN prev_status ps ON ps.symbol = cand.symbol
+      LEFT JOIN symbols s ON s.symbol = cand.symbol
+      -- justTurned: 최근 lookbackDays일 이내에 정배열이 아닌 날이 하나라도 있어야 함
       ${
         justTurned
-          ? sql`WHERE COALESCE( (pv.ma20 > pv.ma50 AND pv.ma50 > pv.ma100 AND pv.ma100 > pv.ma200), FALSE ) = FALSE`
+          ? sql`WHERE COALESCE(ps.non_ordered_days_count, 0) > 0`
           : sql``
       }
-      ORDER BY cand.symbol ASC;
+      ORDER BY s.market_cap DESC NULLS LAST, cand.symbol ASC;
     `);
+
+    const tradeDate =
+      rows.rows.length > 0 ? (rows.rows[0] as any).trade_date : null;
 
     const data = (rows.rows as any[]).map((r) => ({
       symbol: r.symbol,
-      date: r.trade_date,
       last_close: r.last_close,
       ma20: r.ma20,
       ma50: r.ma50,
       ma100: r.ma100,
       ma200: r.ma200,
+      market_cap: r.market_cap,
       ordered: true,
       just_turned: justTurned,
     }));
 
-    return NextResponse.json({ count: data.length, data });
+    return NextResponse.json({
+      count: data.length,
+      trade_date: tradeDate,
+      lookback_days: justTurned ? lookbackDays : null,
+      data,
+    });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: e.message }, { status: 500 });

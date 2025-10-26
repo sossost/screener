@@ -167,12 +167,18 @@ async function main() {
   if (isBackfill) {
     // 백필 모드: 최근 30일간의 MA 계산
     console.log("📊 Running backfill mode - calculating MA for last 30 days");
+
+    // 30일 전 날짜 계산
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const dateStr = thirtyDaysAgo.toISOString().split("T")[0]; // YYYY-MM-DD
+
     const result = await retryDatabaseOperation(
       () =>
         db.execute(sql`
         SELECT DISTINCT date 
         FROM daily_prices 
-        WHERE date >= (CURRENT_DATE - INTERVAL '30 days')
+        WHERE date >= ${dateStr}
         ORDER BY date DESC
       `),
       DEFAULT_RETRY_OPTIONS
