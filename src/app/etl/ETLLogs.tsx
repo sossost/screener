@@ -204,7 +204,9 @@ export function ETLLogs() {
                       {log.job}
                     </span>
                     <span className="text-xs opacity-75">
-                      {new Date(log.timestamp).toLocaleString("ko-KR")}
+                      {new Date(log.timestamp).toLocaleString("ko-KR", {
+                        timeZone: "Asia/Seoul",
+                      })}
                     </span>
                   </div>
                   <p className="text-sm font-medium">{log.message}</p>

@@ -2,6 +2,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
+import { CACHE_TTL } from "@/lib/cache-config";
+
+// 캐싱 설정: 24시간 (종가 기준 데이터, 하루 1회 갱신)
+export const revalidate = CACHE_TTL.GOLDEN_CROSS;
 
 export async function GET(req: Request) {
   try {

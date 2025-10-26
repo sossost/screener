@@ -2,6 +2,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
+import { CACHE_TTL } from "@/lib/cache-config";
+
+// 캐싱 설정: 24시간 (분기별 재무 데이터 기반)
+export const revalidate = CACHE_TTL.TURNED_PROFITABLE;
 
 export async function GET(req: Request) {
   try {

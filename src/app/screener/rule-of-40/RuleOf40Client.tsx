@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -23,26 +23,13 @@ type Rule40Company = {
   rule40_score: string | null;
 };
 
-export const Rule40Client = ({ data }: { data: Rule40Company[] }) => {
-  const [companies, setCompanies] = useState<Rule40Company[]>(data);
-  const [loading, setLoading] = useState(false);
+type Rule40ClientProps = {
+  data: Rule40Company[];
+};
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/screener/rule-of-40");
-      const result = await response.json();
-      setCompanies(result.companies || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+export const Rule40Client = ({ data }: Rule40ClientProps) => {
+  const companies = data;
+  const loading = false; // 서버에서 데이터를 가져오므로 초기 로딩 없음
 
   return (
     <Card className="p-4">

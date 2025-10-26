@@ -32,7 +32,7 @@ export default function ETLPage() {
                     Daily ETL Pipeline
                   </h4>
                   <p className="text-sm text-slate-600">
-                    매일 오전 6시 일일 주가, 오전 8시 이동평균
+                    매일 오후 3시 일일 주가, 오후 5시 이동평균 (KST)
                   </p>
                 </div>
                 <a
@@ -51,7 +51,7 @@ export default function ETLPage() {
                     Weekly ETL Pipeline
                   </h4>
                   <p className="text-sm text-slate-600">
-                    매주 월요일 심볼, 일요일 재무 비율
+                    매주 월요일 오전 9시 심볼, 일요일 오후 4시 재무 비율 (KST)
                   </p>
                 </div>
                 <a

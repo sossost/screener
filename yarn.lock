@@ -777,6 +777,11 @@
   resolved "https://registry.yarnpkg.com/@rushstack/eslint-patch/-/eslint-patch-1.12.0.tgz#326a7b46f6d4cfa54ae25bb888551697873069b4"
   integrity sha512-5EwMtOqvJMMa3HbmxLlF74e+3/HhwBTMcvt3nqVJgGCozO6hzIPOBlwm8mGVNR9SN2IJpxSnlxczyDjcn7qIyw==
 
+"@standard-schema/spec@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.0.0.tgz#f193b73dc316c4170f2e82a881da0f550d551b9c"
+  integrity sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==
+
 "@swc/helpers@0.5.15":
   version "0.5.15"
   resolved "https://registry.yarnpkg.com/@swc/helpers/-/helpers-0.5.15.tgz#79efab344c5819ecf83a43f3f9f811fc84b516d7"
@@ -2831,6 +2836,13 @@ next@15.5.3:
     "@next/swc-win32-arm64-msvc" "15.5.3"
     "@next/swc-win32-x64-msvc" "15.5.3"
     sharp "^0.34.3"
+
+nuqs@^2.7.2:
+  version "2.7.2"
+  resolved "https://registry.yarnpkg.com/nuqs/-/nuqs-2.7.2.tgz#0e7eae9ccc612ca8ff851efd7e2b543ba1780e33"
+  integrity sha512-wOPJoz5om7jMJQick9zU1S/Q+joL+B2DZTZxfCleHEcUzjUnPoujGod4+nAmUWb+G9TwZnyv+mfNqlyfEi8Zag==
+  dependencies:
+    "@standard-schema/spec" "1.0.0"
 
 object-assign@^4.1.1:
   version "4.1.1"

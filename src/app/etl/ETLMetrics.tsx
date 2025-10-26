@@ -154,7 +154,10 @@ export function ETLMetrics() {
           <option value="90d">90일</option>
         </select>
         <span className="text-xs text-gray-500">
-          생성: {new Date(metrics.generatedAt).toLocaleString("ko-KR")}
+          생성:{" "}
+          {new Date(metrics.generatedAt).toLocaleString("ko-KR", {
+            timeZone: "Asia/Seoul",
+          })}
         </span>
       </div>
 

@@ -102,7 +102,9 @@ export function ETLStatus() {
           <p className="text-sm text-slate-600">
             마지막 업데이트:{" "}
             {data.symbols.lastUpdated
-              ? new Date(data.symbols.lastUpdated).toLocaleString("ko-KR")
+              ? new Date(data.symbols.lastUpdated).toLocaleString("ko-KR", {
+                  timeZone: "Asia/Seoul",
+                })
               : "없음"}
           </p>
         </div>
@@ -119,7 +121,8 @@ export function ETLStatus() {
             최신 데이터:{" "}
             {data.dailyPrices.latestDate
               ? new Date(data.dailyPrices.latestDate).toLocaleDateString(
-                  "ko-KR"
+                  "ko-KR",
+                  { timeZone: "Asia/Seoul" }
                 )
               : "없음"}
           </p>
@@ -136,7 +139,9 @@ export function ETLStatus() {
           <p className="text-sm text-slate-600">
             마지막 업데이트:{" "}
             {data.dailyMa.lastUpdated
-              ? new Date(data.dailyMa.lastUpdated).toLocaleString("ko-KR")
+              ? new Date(data.dailyMa.lastUpdated).toLocaleString("ko-KR", {
+                  timeZone: "Asia/Seoul",
+                })
               : "없음"}
           </p>
         </div>
@@ -152,7 +157,9 @@ export function ETLStatus() {
           <p className="text-sm text-slate-600">
             마지막 업데이트:{" "}
             {data.ratios.lastUpdated
-              ? new Date(data.ratios.lastUpdated).toLocaleString("ko-KR")
+              ? new Date(data.ratios.lastUpdated).toLocaleString("ko-KR", {
+                  timeZone: "Asia/Seoul",
+                })
               : "없음"}
           </p>
         </div>
@@ -181,7 +188,9 @@ export function ETLStatus() {
           <div>
             <span className="text-slate-600">마지막 확인:</span>
             <span className="ml-2">
-              {new Date(data.system.lastCheck).toLocaleString("ko-KR")}
+              {new Date(data.system.lastCheck).toLocaleString("ko-KR", {
+                timeZone: "Asia/Seoul",
+              })}
             </span>
           </div>
         </div>
