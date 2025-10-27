@@ -6,21 +6,27 @@ type SearchParams = {
   justTurned?: string;
   lookbackDays?: string;
   profitability?: string;
+  revenueGrowth?: string;
+  incomeGrowth?: string;
 };
 
 async function fetchGoldenCrossData(searchParams: SearchParams) {
   const justTurned = searchParams.justTurned === "true";
   const lookbackDays = searchParams.lookbackDays || "10";
   const profitability = searchParams.profitability || "all";
+  const revenueGrowth = searchParams.revenueGrowth === "true";
+  const incomeGrowth = searchParams.incomeGrowth === "true";
 
   const params = new URLSearchParams({
     justTurned: justTurned.toString(),
     lookbackDays: lookbackDays,
     profitability: profitability,
+    revenueGrowth: revenueGrowth.toString(),
+    incomeGrowth: incomeGrowth.toString(),
   });
 
-  // 캐시 태그 생성 (필터별로 다른 태그 - profitability 포함)
-  const cacheTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}`;
+  // 캐시 태그 생성 (필터별로 다른 태그 - 모든 필터 포함)
+  const cacheTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}-${revenueGrowth}-${incomeGrowth}`;
 
   // 서버 사이드에서 내부 API 호출 (localhost 사용)
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";

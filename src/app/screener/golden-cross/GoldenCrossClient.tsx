@@ -26,11 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+// Switch 컴포넌트가 없으므로 간단한 토글 버튼 사용
 import { QuarterlyBarChart } from "@/components/charts/QuarterlyBarChart";
 
 type QuarterlyFinancial = {
   period_end_date: string;
   revenue: number | null;
+  net_income: number | null;
   eps_diluted: number | null;
 };
 
@@ -40,6 +42,8 @@ type GoldenCrossCompany = {
   last_close: string;
   quarterly_financials: QuarterlyFinancial[];
   profitability_status: "profitable" | "unprofitable" | "unknown";
+  revenue_growth_status: "growing" | "not_growing" | "unknown";
+  income_growth_status: "growing" | "not_growing" | "unknown";
   ordered: boolean;
   just_turned: boolean;
 };
@@ -106,6 +110,18 @@ export default function GoldenCrossClient({
     ] as const).withDefault("all")
   );
 
+  // 매출 성장성 필터 (토글)
+  const [revenueGrowth, setRevenueGrowth] = useQueryState(
+    "revenueGrowth",
+    parseAsBoolean.withDefault(false)
+  );
+
+  // 수익 성장성 필터 (토글)
+  const [incomeGrowth, setIncomeGrowth] = useQueryState(
+    "incomeGrowth",
+    parseAsBoolean.withDefault(false)
+  );
+
   // 로컬 input 상태 (입력 중에는 리패치 안함)
   const [inputValue, setInputValue] = useState(lookbackDays.toString());
 
@@ -113,10 +129,12 @@ export default function GoldenCrossClient({
   const handleFilterChange = async (
     newJustTurned: boolean,
     newLookbackDays: number,
-    newProfitability: "all" | "profitable" | "unprofitable"
+    newProfitability: "all" | "profitable" | "unprofitable",
+    newRevenueGrowth: boolean,
+    newIncomeGrowth: boolean
   ) => {
     // 이전 캐시 무효화 (모든 필터 포함)
-    const oldTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}`;
+    const oldTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}-${revenueGrowth}-${incomeGrowth}`;
     await fetch("/api/cache/revalidate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -127,6 +145,8 @@ export default function GoldenCrossClient({
     await setJustTurned(newJustTurned);
     await setLookbackDays(newLookbackDays);
     await setProfitability(newProfitability);
+    await setRevenueGrowth(newRevenueGrowth);
+    await setIncomeGrowth(newIncomeGrowth);
 
     // 서버 컴포넌트 리패치 (transition으로 감싸서 로딩 표시)
     startTransition(() => {
@@ -138,7 +158,13 @@ export default function GoldenCrossClient({
   const handleLookbackConfirm = () => {
     const newValue = Number(inputValue);
     if (newValue >= 1 && newValue <= 60 && newValue !== lookbackDays) {
-      handleFilterChange(justTurned, newValue, profitability);
+      handleFilterChange(
+        justTurned,
+        newValue,
+        profitability,
+        revenueGrowth,
+        incomeGrowth
+      );
     }
   };
 
@@ -157,7 +183,13 @@ export default function GoldenCrossClient({
               name="alignment-filter"
               checked={!justTurned}
               onChange={() =>
-                handleFilterChange(false, lookbackDays, profitability)
+                handleFilterChange(
+                  false,
+                  lookbackDays,
+                  profitability,
+                  revenueGrowth,
+                  incomeGrowth
+                )
               }
               disabled={isPending}
               className="w-4 h-4 text-blue-600 disabled:opacity-50"
@@ -173,7 +205,13 @@ export default function GoldenCrossClient({
               name="alignment-filter"
               checked={justTurned}
               onChange={() =>
-                handleFilterChange(true, lookbackDays, profitability)
+                handleFilterChange(
+                  true,
+                  lookbackDays,
+                  profitability,
+                  revenueGrowth,
+                  incomeGrowth
+                )
               }
               disabled={isPending}
               className="w-4 h-4 text-blue-600 disabled:opacity-50"
@@ -210,35 +248,84 @@ export default function GoldenCrossClient({
             <span className="text-sm text-gray-600">일</span>
           </div>
 
-          {/* 수익성 드롭다운 - 오른쪽 끝 */}
-          <div className="flex items-center space-x-2 ml-auto">
-            <label className="text-sm font-medium text-gray-700">수익성:</label>
-            <Select
-              value={profitability}
-              onValueChange={(value: string) =>
+          {/* 성장성 필터들 + 수익성 드롭다운 - 오른쪽 끝 */}
+          <div className="flex items-center space-x-3 ml-auto">
+            {/* 매출 성장성 필터 */}
+            <button
+              onClick={() =>
                 handleFilterChange(
                   justTurned,
                   lookbackDays,
-                  value as "all" | "profitable" | "unprofitable"
+                  profitability,
+                  !revenueGrowth,
+                  incomeGrowth
                 )
               }
               disabled={isPending}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
+                revenueGrowth
+                  ? "bg-green-600 text-white border-green-600 shadow-md hover:bg-green-700"
+                  : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+              }`}
             >
-              <SelectTrigger className="w-[90px] h-8 hover:bg-gray-50 transition-colors cursor-pointer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="min-w-[90px]">
-                <SelectItem value="all" className="cursor-pointer">
-                  전체
-                </SelectItem>
-                <SelectItem value="profitable" className="cursor-pointer">
-                  흑자
-                </SelectItem>
-                <SelectItem value="unprofitable" className="cursor-pointer">
-                  적자
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              매출 성장성
+            </button>
+
+            {/* 수익 성장성 필터 */}
+            <button
+              onClick={() =>
+                handleFilterChange(
+                  justTurned,
+                  lookbackDays,
+                  profitability,
+                  revenueGrowth,
+                  !incomeGrowth
+                )
+              }
+              disabled={isPending}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
+                incomeGrowth
+                  ? "bg-green-600 text-white border-green-600 shadow-md hover:bg-green-700"
+                  : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+              }`}
+            >
+              수익 성장성
+            </button>
+
+            {/* 수익성 드롭다운 - 제일 오른쪽 */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">
+                수익성:
+              </label>
+              <Select
+                value={profitability}
+                onValueChange={(value: string) =>
+                  handleFilterChange(
+                    justTurned,
+                    lookbackDays,
+                    value as "all" | "profitable" | "unprofitable",
+                    revenueGrowth,
+                    incomeGrowth
+                  )
+                }
+                disabled={isPending}
+              >
+                <SelectTrigger className="w-[90px] h-8 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="min-w-[90px]">
+                  <SelectItem value="all" className="cursor-pointer">
+                    전체
+                  </SelectItem>
+                  <SelectItem value="profitable" className="cursor-pointer">
+                    흑자
+                  </SelectItem>
+                  <SelectItem value="unprofitable" className="cursor-pointer">
+                    적자
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -327,6 +414,12 @@ export default function GoldenCrossClient({
                       ? "흑자 종목만"
                       : "적자 종목만"}
                   </span>
+                )}
+                {revenueGrowth && (
+                  <span className="ml-2">• 매출 4분기 연속 상승 종목만</span>
+                )}
+                {incomeGrowth && (
+                  <span className="ml-2">• 수익 4분기 연속 상승 종목만</span>
                 )}
               </TableCaption>
               <TableHeader>

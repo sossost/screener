@@ -4,7 +4,7 @@ import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
 
 // 동적 라우트 강제 (쿼리 파라미터 사용)
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // 캐싱 설정: 24시간 (종가 기준 데이터, 하루 1회 갱신)
 // Next.js는 정적 분석을 위해 리터럴 값만 허용 (계산식/상수 참조 불가)
@@ -22,6 +22,8 @@ export async function GET(req: Request) {
     const minAvgVol = Number(searchParams.get("minAvgVol") ?? 0);
     const allowOTC = searchParams.get("allowOTC") === "true";
     const profitability = searchParams.get("profitability") ?? "all"; // 수익성 필터
+    const revenueGrowth = searchParams.get("revenueGrowth") === "true"; // 매출 성장 필터 (boolean)
+    const incomeGrowth = searchParams.get("incomeGrowth") === "true"; // 수익 성장 필터 (boolean)
 
     const rows = await db.execute(sql`
       WITH last_d AS (
@@ -114,7 +116,10 @@ export async function GET(req: Request) {
         s.market_cap,
         -- 재무 데이터 (최근 4개 분기)
         qf.quarterly_data,
-        qf.eps_q1         AS latest_eps
+        qf.eps_q1         AS latest_eps,
+        -- 성장성 상태
+        qf.revenue_growth_status,
+        qf.income_growth_status
       FROM candidates cand
       LEFT JOIN prev_status ps ON ps.symbol = cand.symbol
       LEFT JOIN symbols s ON s.symbol = cand.symbol
@@ -125,6 +130,7 @@ export async function GET(req: Request) {
             json_build_object(
               'period_end_date', period_end_date,
               'revenue', revenue::numeric,
+              'net_income', net_income::numeric,
               'eps_diluted', eps_diluted::numeric
             ) ORDER BY period_end_date DESC
           ) as quarterly_data,
@@ -135,12 +141,50 @@ export async function GET(req: Request) {
               AND eps_diluted IS NOT NULL
             ORDER BY period_end_date DESC
             LIMIT 1
-          ) as eps_q1
+          ) as eps_q1,
+          -- 매출 성장성 계산 (최근 4분기 연속 상승)
+          CASE 
+            WHEN COUNT(*) >= 4 AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) > 
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) > 
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) > 
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) IS NOT NULL AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) IS NOT NULL AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) IS NOT NULL AND
+                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) IS NOT NULL
+            THEN 'growing'
+            WHEN COUNT(*) < 4
+            THEN 'unknown'
+            ELSE 'not_growing'
+          END as revenue_growth_status,
+          -- 수익 성장성 계산 (최근 4분기 연속 상승)
+          CASE 
+            WHEN COUNT(*) >= 4 AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) > 
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) > 
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) > 
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) IS NOT NULL AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) IS NOT NULL AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) IS NOT NULL AND
+                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) IS NOT NULL
+            THEN 'growing'
+            WHEN COUNT(*) < 4
+            THEN 'unknown'
+            ELSE 'not_growing'
+          END as income_growth_status
         FROM (
           SELECT 
             period_end_date,
             revenue,
-            eps_diluted
+            net_income,
+            eps_diluted,
+            ROW_NUMBER() OVER (ORDER BY period_end_date DESC) as rn
           FROM quarterly_financials
           WHERE symbol = cand.symbol
           ORDER BY period_end_date DESC
@@ -162,6 +206,10 @@ export async function GET(req: Request) {
             ? sql`AND qf.eps_q1 IS NOT NULL AND qf.eps_q1 < 0`
             : sql``
         }
+        -- 매출 성장성 필터
+        ${revenueGrowth ? sql`AND qf.revenue_growth_status = 'growing'` : sql``}
+        -- 수익 성장성 필터
+        ${incomeGrowth ? sql`AND qf.income_growth_status = 'growing'` : sql``}
       ORDER BY s.market_cap DESC NULLS LAST, cand.symbol ASC;
     `);
 
@@ -172,6 +220,8 @@ export async function GET(req: Request) {
       market_cap: number | null;
       quarterly_data: any[] | null;
       latest_eps: number | null;
+      revenue_growth_status: string | null;
+      income_growth_status: string | null;
     };
 
     const results = rows.rows as QueryResult[];
@@ -179,8 +229,8 @@ export async function GET(req: Request) {
 
     const data = results.map((r) => ({
       symbol: r.symbol,
-      market_cap: r.market_cap,
-      last_close: r.last_close,
+      market_cap: r.market_cap?.toString() || null,
+      last_close: r.last_close.toString(),
       quarterly_financials: r.quarterly_data || [],
       profitability_status:
         r.latest_eps !== null && r.latest_eps > 0
@@ -188,6 +238,8 @@ export async function GET(req: Request) {
           : r.latest_eps !== null && r.latest_eps < 0
           ? "unprofitable"
           : "unknown",
+      revenue_growth_status: r.revenue_growth_status || "unknown",
+      income_growth_status: r.income_growth_status || "unknown",
       ordered: true,
       just_turned: justTurned,
     }));
