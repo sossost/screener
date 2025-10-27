@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 // Switch 컴포넌트가 없으므로 간단한 토글 버튼 사용
 import { QuarterlyBarChart } from "@/components/charts/QuarterlyBarChart";
+import { GrowthFilterControls } from "@/components/filters/GrowthFilterControls";
 
 type QuarterlyFinancial = {
   period_end_date: string;
@@ -42,8 +43,8 @@ type GoldenCrossCompany = {
   last_close: string;
   quarterly_financials: QuarterlyFinancial[];
   profitability_status: "profitable" | "unprofitable" | "unknown";
-  revenue_growth_status: "growing" | "not_growing" | "unknown";
-  income_growth_status: "growing" | "not_growing" | "unknown";
+  revenue_growth_quarters: number;
+  income_growth_quarters: number;
   ordered: boolean;
   just_turned: boolean;
 };
@@ -122,6 +123,18 @@ export default function GoldenCrossClient({
     parseAsBoolean.withDefault(false)
   );
 
+  // 매출 성장 연속 분기 수
+  const [revenueGrowthQuarters, setRevenueGrowthQuarters] = useQueryState(
+    "revenueGrowthQuarters",
+    parseAsInteger.withDefault(3)
+  );
+
+  // 수익 성장 연속 분기 수
+  const [incomeGrowthQuarters, setIncomeGrowthQuarters] = useQueryState(
+    "incomeGrowthQuarters",
+    parseAsInteger.withDefault(3)
+  );
+
   // 로컬 input 상태 (입력 중에는 리패치 안함)
   const [inputValue, setInputValue] = useState(lookbackDays.toString());
 
@@ -131,10 +144,12 @@ export default function GoldenCrossClient({
     newLookbackDays: number,
     newProfitability: "all" | "profitable" | "unprofitable",
     newRevenueGrowth: boolean,
-    newIncomeGrowth: boolean
+    newIncomeGrowth: boolean,
+    newRevenueGrowthQuarters?: number,
+    newIncomeGrowthQuarters?: number
   ) => {
     // 이전 캐시 무효화 (모든 필터 포함)
-    const oldTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}-${revenueGrowth}-${incomeGrowth}`;
+    const oldTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}-${revenueGrowth}-${revenueGrowthQuarters}-${incomeGrowth}-${incomeGrowthQuarters}`;
     await fetch("/api/cache/revalidate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -147,6 +162,13 @@ export default function GoldenCrossClient({
     await setProfitability(newProfitability);
     await setRevenueGrowth(newRevenueGrowth);
     await setIncomeGrowth(newIncomeGrowth);
+
+    if (newRevenueGrowthQuarters !== undefined) {
+      await setRevenueGrowthQuarters(newRevenueGrowthQuarters);
+    }
+    if (newIncomeGrowthQuarters !== undefined) {
+      await setIncomeGrowthQuarters(newIncomeGrowthQuarters);
+    }
 
     // 서버 컴포넌트 리패치 (transition으로 감싸서 로딩 표시)
     startTransition(() => {
@@ -163,7 +185,9 @@ export default function GoldenCrossClient({
         newValue,
         profitability,
         revenueGrowth,
-        incomeGrowth
+        incomeGrowth,
+        revenueGrowthQuarters,
+        incomeGrowthQuarters
       );
     }
   };
@@ -188,7 +212,9 @@ export default function GoldenCrossClient({
                   lookbackDays,
                   profitability,
                   revenueGrowth,
-                  incomeGrowth
+                  incomeGrowth,
+                  revenueGrowthQuarters,
+                  incomeGrowthQuarters
                 )
               }
               disabled={isPending}
@@ -210,7 +236,9 @@ export default function GoldenCrossClient({
                   lookbackDays,
                   profitability,
                   revenueGrowth,
-                  incomeGrowth
+                  incomeGrowth,
+                  revenueGrowthQuarters,
+                  incomeGrowthQuarters
                 )
               }
               disabled={isPending}
@@ -250,53 +278,64 @@ export default function GoldenCrossClient({
 
           {/* 성장성 필터들 + 수익성 드롭다운 - 오른쪽 끝 */}
           <div className="flex items-center space-x-3 ml-auto">
-            {/* 매출 성장성 필터 */}
-            <button
-              onClick={() =>
+            {/* 성장성 필터 컴포넌트 */}
+            <GrowthFilterControls
+              revenueGrowth={revenueGrowth}
+              setRevenueGrowth={(value) =>
                 handleFilterChange(
                   justTurned,
                   lookbackDays,
                   profitability,
-                  !revenueGrowth,
-                  incomeGrowth
+                  value,
+                  incomeGrowth,
+                  revenueGrowthQuarters,
+                  incomeGrowthQuarters
                 )
               }
-              disabled={isPending}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
-                revenueGrowth
-                  ? "bg-green-600 text-white border-green-600 shadow-md hover:bg-green-700"
-                  : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-              }`}
-            >
-              매출 성장성
-            </button>
-
-            {/* 수익 성장성 필터 */}
-            <button
-              onClick={() =>
+              revenueGrowthQuarters={revenueGrowthQuarters}
+              setRevenueGrowthQuarters={(value) =>
                 handleFilterChange(
                   justTurned,
                   lookbackDays,
                   profitability,
                   revenueGrowth,
-                  !incomeGrowth
+                  incomeGrowth,
+                  value,
+                  incomeGrowthQuarters
                 )
               }
-              disabled={isPending}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
-                incomeGrowth
-                  ? "bg-green-600 text-white border-green-600 shadow-md hover:bg-green-700"
-                  : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-              }`}
-            >
-              수익 성장성
-            </button>
+              incomeGrowth={incomeGrowth}
+              setIncomeGrowth={(value) =>
+                handleFilterChange(
+                  justTurned,
+                  lookbackDays,
+                  profitability,
+                  revenueGrowth,
+                  value,
+                  revenueGrowthQuarters,
+                  incomeGrowthQuarters
+                )
+              }
+              incomeGrowthQuarters={incomeGrowthQuarters}
+              setIncomeGrowthQuarters={(value) =>
+                handleFilterChange(
+                  justTurned,
+                  lookbackDays,
+                  profitability,
+                  revenueGrowth,
+                  incomeGrowth,
+                  revenueGrowthQuarters,
+                  value
+                )
+              }
+            />
+
+            {/* 구분선 */}
+            <div className="w-px h-6 bg-border"></div>
 
             {/* 수익성 드롭다운 - 제일 오른쪽 */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">
-                수익성:
-              </label>
+            <div className="flex items-center space-x-3 bg-card rounded-md px-3 py-2 border shadow-sm hover:bg-accent/50 transition-colors">
+              <label className="text-sm font-medium leading-none">수익성</label>
               <Select
                 value={profitability}
                 onValueChange={(value: string) =>
@@ -305,22 +344,30 @@ export default function GoldenCrossClient({
                     lookbackDays,
                     value as "all" | "profitable" | "unprofitable",
                     revenueGrowth,
-                    incomeGrowth
+                    incomeGrowth,
+                    revenueGrowthQuarters,
+                    incomeGrowthQuarters
                   )
                 }
                 disabled={isPending}
               >
-                <SelectTrigger className="w-[90px] h-8 hover:bg-gray-50 transition-colors cursor-pointer">
+                <SelectTrigger className="w-[80px] h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="min-w-[90px]">
-                  <SelectItem value="all" className="cursor-pointer">
+                <SelectContent className="min-w-[80px]">
+                  <SelectItem value="all" className="cursor-pointer text-sm">
                     전체
                   </SelectItem>
-                  <SelectItem value="profitable" className="cursor-pointer">
+                  <SelectItem
+                    value="profitable"
+                    className="cursor-pointer text-sm"
+                  >
                     흑자
                   </SelectItem>
-                  <SelectItem value="unprofitable" className="cursor-pointer">
+                  <SelectItem
+                    value="unprofitable"
+                    className="cursor-pointer text-sm"
+                  >
                     적자
                   </SelectItem>
                 </SelectContent>
@@ -347,11 +394,11 @@ export default function GoldenCrossClient({
                   <TableHead className="text-right w-[140px]">
                     Last Close
                   </TableHead>
-                  <TableHead className="w-[100px] text-right">
-                    매출 (4Q)
+                  <TableHead className="w-[160px] text-right">
+                    매출 (8Q)
                   </TableHead>
-                  <TableHead className="w-[100px] text-right">
-                    EPS (4Q)
+                  <TableHead className="w-[160px] text-right">
+                    EPS (8Q)
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -416,10 +463,14 @@ export default function GoldenCrossClient({
                   </span>
                 )}
                 {revenueGrowth && (
-                  <span className="ml-2">• 매출 4분기 연속 상승 종목만</span>
+                  <span className="ml-2">
+                    • 매출 {revenueGrowthQuarters}분기 연속 상승 종목만
+                  </span>
                 )}
                 {incomeGrowth && (
-                  <span className="ml-2">• 수익 4분기 연속 상승 종목만</span>
+                  <span className="ml-2">
+                    • 수익 {incomeGrowthQuarters}분기 연속 상승 종목만
+                  </span>
                 )}
               </TableCaption>
               <TableHeader>
@@ -431,11 +482,11 @@ export default function GoldenCrossClient({
                   <TableHead className="text-right w-[140px]">
                     Last Close
                   </TableHead>
-                  <TableHead className="w-[100px] text-right">
-                    매출 (4Q)
+                  <TableHead className="w-[160px] text-right">
+                    매출 (8Q)
                   </TableHead>
-                  <TableHead className="w-[100px] text-right">
-                    EPS (4Q)
+                  <TableHead className="w-[160px] text-right">
+                    EPS (8Q)
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -473,7 +524,7 @@ export default function GoldenCrossClient({
                         )}
                         type="revenue"
                         height={28}
-                        width={80}
+                        width={160}
                       />
                     </TableCell>
 
@@ -483,7 +534,7 @@ export default function GoldenCrossClient({
                         data={prepareChartData(c.quarterly_financials, "eps")}
                         type="eps"
                         height={28}
-                        width={80}
+                        width={160}
                       />
                     </TableCell>
                   </TableRow>
