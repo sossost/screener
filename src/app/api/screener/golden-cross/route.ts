@@ -24,6 +24,26 @@ export async function GET(req: Request) {
     const profitability = searchParams.get("profitability") ?? "all"; // 수익성 필터
     const revenueGrowth = searchParams.get("revenueGrowth") === "true"; // 매출 성장 필터 (boolean)
     const incomeGrowth = searchParams.get("incomeGrowth") === "true"; // 수익 성장 필터 (boolean)
+    const revenueGrowthQuarters = Number(
+      searchParams.get("revenueGrowthQuarters") ?? 3
+    ); // 매출 성장 연속 분기 수
+    const incomeGrowthQuarters = Number(
+      searchParams.get("incomeGrowthQuarters") ?? 3
+    ); // 수익 성장 연속 분기 수
+
+    // 유효성 검사
+    if (revenueGrowthQuarters < 2 || revenueGrowthQuarters > 8) {
+      return NextResponse.json(
+        { error: "revenueGrowthQuarters must be between 2 and 8" },
+        { status: 400 }
+      );
+    }
+    if (incomeGrowthQuarters < 2 || incomeGrowthQuarters > 8) {
+      return NextResponse.json(
+        { error: "incomeGrowthQuarters must be between 2 and 8" },
+        { status: 400 }
+      );
+    }
 
     const rows = await db.execute(sql`
       WITH last_d AS (
@@ -114,23 +134,22 @@ export async function GET(req: Request) {
         cand.d            AS trade_date,
         cand.close        AS last_close,
         s.market_cap,
-        -- 재무 데이터 (최근 4개 분기)
+        -- 재무 데이터 (최근 8개 분기)
         qf.quarterly_data,
         qf.eps_q1         AS latest_eps,
-        -- 성장성 상태
-        qf.revenue_growth_status,
-        qf.income_growth_status
+        -- 성장성 정보
+        qf.revenue_growth_quarters,
+        qf.income_growth_quarters
       FROM candidates cand
       LEFT JOIN prev_status ps ON ps.symbol = cand.symbol
       LEFT JOIN symbols s ON s.symbol = cand.symbol
-      -- 최근 4개 분기 재무 데이터 JOIN
+      -- 최근 8개 분기 재무 데이터 JOIN
       LEFT JOIN LATERAL (
         SELECT
           json_agg(
             json_build_object(
               'period_end_date', period_end_date,
               'revenue', revenue::numeric,
-              'net_income', net_income::numeric,
               'eps_diluted', eps_diluted::numeric
             ) ORDER BY period_end_date DESC
           ) as quarterly_data,
@@ -142,53 +161,86 @@ export async function GET(req: Request) {
             ORDER BY period_end_date DESC
             LIMIT 1
           ) as eps_q1,
-          -- 매출 성장성 계산 (최근 4분기 연속 상승)
-          CASE 
-            WHEN COUNT(*) >= 4 AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) > 
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) > 
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) > 
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) IS NOT NULL AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) IS NOT NULL AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) IS NOT NULL AND
-                 (SELECT revenue::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) IS NOT NULL
-            THEN 'growing'
-            WHEN COUNT(*) < 4
-            THEN 'unknown'
-            ELSE 'not_growing'
-          END as revenue_growth_status,
-          -- 수익 성장성 계산 (최근 4분기 연속 상승)
-          CASE 
-            WHEN COUNT(*) >= 4 AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) > 
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) > 
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) > 
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 0) IS NOT NULL AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 1) IS NOT NULL AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 2) IS NOT NULL AND
-                 (SELECT net_income::numeric FROM quarterly_financials WHERE symbol = cand.symbol ORDER BY period_end_date DESC LIMIT 1 OFFSET 3) IS NOT NULL
-            THEN 'growing'
-            WHEN COUNT(*) < 4
-            THEN 'unknown'
-            ELSE 'not_growing'
-          END as income_growth_status
+          -- 연속 매출 성장 분기 수 계산 (새로운 방법)
+          (
+            WITH revenue_data AS (
+              SELECT 
+                revenue::numeric as rev, 
+                period_end_date,
+                ROW_NUMBER() OVER (ORDER BY period_end_date DESC) as rn
+              FROM quarterly_financials
+              WHERE symbol = cand.symbol
+                AND revenue IS NOT NULL
+              ORDER BY period_end_date DESC
+              LIMIT 8
+            ),
+            revenue_growth_check AS (
+              SELECT 
+                rev,
+                LAG(rev) OVER (ORDER BY period_end_date ASC) as prev_rev,
+                rn,
+                CASE WHEN rev > LAG(rev) OVER (ORDER BY period_end_date ASC) THEN 1 ELSE 0 END as is_growth
+              FROM revenue_data
+            )
+            SELECT COALESCE(
+              (
+                SELECT COUNT(*)
+                FROM revenue_growth_check
+                WHERE rn >= 1 
+                  AND is_growth = 1
+                  AND rn <= COALESCE(
+                    (SELECT MIN(rn) FROM revenue_growth_check WHERE rn >= 1 AND is_growth = 0),
+                    8
+                  )
+              ), 
+              0
+            )
+          ) as revenue_growth_quarters,
+          -- 연속 수익 성장 분기 수 계산
+          (
+            WITH income_data AS (
+              SELECT 
+                eps_diluted::numeric as eps, 
+                period_end_date,
+                ROW_NUMBER() OVER (ORDER BY period_end_date DESC) as rn
+              FROM quarterly_financials
+              WHERE symbol = cand.symbol
+                AND eps_diluted IS NOT NULL
+              ORDER BY period_end_date DESC
+              LIMIT 8
+            ),
+            income_growth_check AS (
+              SELECT 
+                eps,
+                LAG(eps) OVER (ORDER BY period_end_date ASC) as prev_eps,
+                rn,
+                CASE WHEN eps > LAG(eps) OVER (ORDER BY period_end_date ASC) THEN 1 ELSE 0 END as is_growth
+              FROM income_data
+            )
+            SELECT COALESCE(
+              (
+                SELECT COUNT(*)
+                FROM income_growth_check
+                WHERE rn >= 1 
+                  AND is_growth = 1
+                  AND rn <= COALESCE(
+                    (SELECT MIN(rn) FROM income_growth_check WHERE rn >= 1 AND is_growth = 0),
+                    8
+                  )
+              ), 
+              0
+            )
+          ) as income_growth_quarters
         FROM (
           SELECT 
             period_end_date,
             revenue,
-            net_income,
             eps_diluted,
             ROW_NUMBER() OVER (ORDER BY period_end_date DESC) as rn
           FROM quarterly_financials
           WHERE symbol = cand.symbol
           ORDER BY period_end_date DESC
-          LIMIT 4
+          LIMIT 8
         ) recent_quarters
       ) qf ON true
       WHERE 1=1
@@ -207,9 +259,17 @@ export async function GET(req: Request) {
             : sql``
         }
         -- 매출 성장성 필터
-        ${revenueGrowth ? sql`AND qf.revenue_growth_status = 'growing'` : sql``}
+        ${
+          revenueGrowth
+            ? sql`AND qf.revenue_growth_quarters >= ${revenueGrowthQuarters}`
+            : sql``
+        }
         -- 수익 성장성 필터
-        ${incomeGrowth ? sql`AND qf.income_growth_status = 'growing'` : sql``}
+        ${
+          incomeGrowth
+            ? sql`AND qf.income_growth_quarters >= ${incomeGrowthQuarters}`
+            : sql``
+        }
       ORDER BY s.market_cap DESC NULLS LAST, cand.symbol ASC;
     `);
 
@@ -220,8 +280,8 @@ export async function GET(req: Request) {
       market_cap: number | null;
       quarterly_data: any[] | null;
       latest_eps: number | null;
-      revenue_growth_status: string | null;
-      income_growth_status: string | null;
+      revenue_growth_quarters: number | null;
+      income_growth_quarters: number | null;
     };
 
     const results = rows.rows as QueryResult[];
@@ -238,8 +298,8 @@ export async function GET(req: Request) {
           : r.latest_eps !== null && r.latest_eps < 0
           ? "unprofitable"
           : "unknown",
-      revenue_growth_status: r.revenue_growth_status || "unknown",
-      income_growth_status: r.income_growth_status || "unknown",
+      revenue_growth_quarters: r.revenue_growth_quarters || 0,
+      income_growth_quarters: r.income_growth_quarters || 0,
       ordered: true,
       just_turned: justTurned,
     }));

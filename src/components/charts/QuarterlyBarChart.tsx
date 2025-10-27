@@ -14,7 +14,7 @@ const COLORS = {
 
 const CHART_CONFIG = {
   DEFAULT_HEIGHT: 28,
-  DEFAULT_WIDTH: 80,
+  DEFAULT_WIDTH: 160, // 8분기 × 20px
   BAR_WIDTH: "w-3",
   BAR_GAP: "gap-0.5",
   HEIGHT_MULTIPLIER: 0.8,

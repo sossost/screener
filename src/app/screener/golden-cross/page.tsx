@@ -6,6 +6,11 @@ import { TableSkeleton } from "./TableSkeleton";
 type SearchParams = {
   justTurned?: string;
   lookbackDays?: string;
+  profitability?: string;
+  revenueGrowth?: string;
+  revenueGrowthQuarters?: string;
+  incomeGrowth?: string;
+  incomeGrowthQuarters?: string;
 };
 
 const GoldenCrossPage = async ({
