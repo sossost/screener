@@ -12,6 +12,14 @@ export const revalidate = 86400; // 1일 (60 * 60 * 24초)
 
 export async function GET(req: Request) {
   try {
+    // 환경변수 체크
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    if (!process.env.FMP_API_KEY) {
+      throw new Error("FMP_API_KEY environment variable is not set");
+    }
+
     const { searchParams } = new URL(req.url);
 
     const justTurned = searchParams.get("justTurned") === "true";
@@ -311,7 +319,36 @@ export async function GET(req: Request) {
       data,
     });
   } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error("Golden Cross API Error:", e);
+    
+    // 데이터베이스 연결 에러 체크
+    if (e.message?.includes("connection") || e.message?.includes("database")) {
+      return NextResponse.json(
+        { 
+          error: "Database connection failed", 
+          details: process.env.NODE_ENV === "development" ? e.message : "Internal server error"
+        }, 
+        { status: 503 }
+      );
+    }
+    
+    // 환경변수 에러 체크
+    if (e.message?.includes("DATABASE_URL") || e.message?.includes("FMP_API_KEY")) {
+      return NextResponse.json(
+        { 
+          error: "Environment variables not configured", 
+          details: process.env.NODE_ENV === "development" ? e.message : "Configuration error"
+        }, 
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json(
+      { 
+        error: "Internal server error", 
+        details: process.env.NODE_ENV === "development" ? e.message : "Something went wrong"
+      }, 
+      { status: 500 }
+    );
   }
 }
