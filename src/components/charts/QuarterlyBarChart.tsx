@@ -73,7 +73,7 @@ function formatValue(value: number | null, type: "revenue" | "eps"): string {
   }
 }
 
-export const QuarterlyBarChart = React.memo(function QuarterlyBarChart({
+export function QuarterlyBarChart({
   data,
   type,
   height = CHART_CONFIG.DEFAULT_HEIGHT,
@@ -203,4 +203,4 @@ export const QuarterlyBarChart = React.memo(function QuarterlyBarChart({
       })}
     </div>
   );
-});
+}

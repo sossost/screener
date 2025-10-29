@@ -2,9 +2,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
+import { handleApiError, logError } from "@/lib/errors";
 
 // 동적 라우트 강제 (쿼리 파라미터 사용)
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // 캐싱 설정: 24시간 (분기별 재무 데이터 기반)
 // Next.js는 정적 분석을 위해 리터럴 값만 허용 (계산식/상수 참조 불가)
@@ -128,8 +129,16 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({ count: companies.length, companies });
-  } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (error) {
+    logError(error, "Turned Profitable API");
+    const apiError = handleApiError(error);
+
+    return NextResponse.json(
+      {
+        error: apiError.message,
+        details: apiError.details,
+      },
+      { status: apiError.statusCode }
+    );
   }
 }

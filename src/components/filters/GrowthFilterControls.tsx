@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { memo, useCallback } from "react";
 
 interface GrowthFilterControlsProps {
   revenueGrowth: boolean;
@@ -13,7 +13,7 @@ interface GrowthFilterControlsProps {
   setIncomeGrowthQuarters: (value: number) => void;
 }
 
-export function GrowthFilterControls({
+export const GrowthFilterControls = memo(function GrowthFilterControls({
   revenueGrowth,
   setRevenueGrowth,
   revenueGrowthQuarters,
@@ -24,8 +24,12 @@ export function GrowthFilterControls({
   setIncomeGrowthQuarters,
 }: GrowthFilterControlsProps) {
   // 로컬 상태로 입력값 관리 (입력 중에는 API 호출 안함)
-  const [revenueInputValue, setRevenueInputValue] = React.useState(revenueGrowthQuarters.toString());
-  const [incomeInputValue, setIncomeInputValue] = React.useState(incomeGrowthQuarters.toString());
+  const [revenueInputValue, setRevenueInputValue] = React.useState(
+    revenueGrowthQuarters.toString()
+  );
+  const [incomeInputValue, setIncomeInputValue] = React.useState(
+    incomeGrowthQuarters.toString()
+  );
 
   // props가 변경되면 로컬 상태도 업데이트
   React.useEffect(() => {
@@ -36,11 +40,11 @@ export function GrowthFilterControls({
     setIncomeInputValue(incomeGrowthQuarters.toString());
   }, [incomeGrowthQuarters]);
 
-  const handleRevenueQuartersChange = (value: string) => {
+  const handleRevenueQuartersChange = useCallback((value: string) => {
     setRevenueInputValue(value);
-  };
+  }, []);
 
-  const handleRevenueQuartersConfirm = () => {
+  const handleRevenueQuartersConfirm = useCallback(() => {
     const num = Number(revenueInputValue);
     if (num >= 2 && num <= 8 && num !== revenueGrowthQuarters) {
       setRevenueGrowthQuarters(num);
@@ -48,19 +52,22 @@ export function GrowthFilterControls({
       // 유효하지 않은 값이면 원래 값으로 복원
       setRevenueInputValue(revenueGrowthQuarters.toString());
     }
-  };
+  }, [revenueInputValue, revenueGrowthQuarters, setRevenueGrowthQuarters]);
 
-  const handleRevenueQuartersKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleRevenueQuartersConfirm();
-    }
-  };
+  const handleRevenueQuartersKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleRevenueQuartersConfirm();
+      }
+    },
+    [handleRevenueQuartersConfirm]
+  );
 
-  const handleIncomeQuartersChange = (value: string) => {
+  const handleIncomeQuartersChange = useCallback((value: string) => {
     setIncomeInputValue(value);
-  };
+  }, []);
 
-  const handleIncomeQuartersConfirm = () => {
+  const handleIncomeQuartersConfirm = useCallback(() => {
     const num = Number(incomeInputValue);
     if (num >= 2 && num <= 8 && num !== incomeGrowthQuarters) {
       setIncomeGrowthQuarters(num);
@@ -68,13 +75,16 @@ export function GrowthFilterControls({
       // 유효하지 않은 값이면 원래 값으로 복원
       setIncomeInputValue(incomeGrowthQuarters.toString());
     }
-  };
+  }, [incomeInputValue, incomeGrowthQuarters, setIncomeGrowthQuarters]);
 
-  const handleIncomeQuartersKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleIncomeQuartersConfirm();
-    }
-  };
+  const handleIncomeQuartersKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleIncomeQuartersConfirm();
+      }
+    },
+    [handleIncomeQuartersConfirm]
+  );
 
   return (
     <div className="flex items-center space-x-4">
@@ -154,4 +164,4 @@ export function GrowthFilterControls({
       </div>
     </div>
   );
-}
+});
