@@ -1,80 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-interface MetricsData {
-  period: string;
-  metrics: {
-    dataQuality: {
-      avgDailyRecords: number;
-      avgDailySymbols: number;
-      minDailyRecords: number;
-      maxDailyRecords: number;
-      daysWithData: number;
-      dataCompleteness: number;
-    };
-    performance: {
-      avgExecutionTime: {
-        symbols: string;
-        dailyPrices: string;
-        dailyMa: string;
-        ratios: string;
-      };
-      successRate: {
-        symbols: number;
-        dailyPrices: number;
-        dailyMa: number;
-        ratios: number;
-      };
-      errorRate: {
-        symbols: number;
-        dailyPrices: number;
-        dailyMa: number;
-        ratios: number;
-      };
-      throughput: {
-        symbolsPerMinute: number;
-        pricesPerMinute: number;
-        maCalculationsPerMinute: number;
-        ratiosPerMinute: number;
-      };
-    };
-    system: {
-      resourceUsage: {
-        cpu: number;
-        memory: number;
-        disk: number;
-        network: number;
-      };
-      apiUsage: {
-        fmpApiCalls: number;
-        fmpApiLimit: number;
-        fmpApiUsagePercent: number;
-      };
-      database: {
-        connectionPool: number;
-        maxConnections: number;
-        avgQueryTime: number;
-        slowQueries: number;
-      };
-      githubActions: {
-        monthlyMinutes: number;
-        monthlyLimit: number;
-        usagePercent: number;
-      };
-    };
-  };
-  generatedAt: string;
-}
+import { API_BASE_URL } from "@/lib/constants";
+import { MetricsData } from "@/types/etl";
 
 async function getETLMetrics(
   period: string = "7d"
 ): Promise<MetricsData | null> {
   try {
     const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      }/api/etl/metrics?period=${period}`,
+      `${API_BASE_URL}/api/etl/metrics?period=${period}`,
       {
         cache: "no-store",
       }

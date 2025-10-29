@@ -1,12 +1,12 @@
 import React from "react";
 import { Rule40Client } from "./RuleOf40Client";
 import { Navigation } from "@/components/navigation";
+import { API_BASE_URL, CACHE_DURATION } from "@/lib/constants";
 
 async function fetchRule40Data() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/screener/rule-of-40`, {
-      next: { revalidate: 60 * 60 * 24 }, // 24시간 캐싱
+    const response = await fetch(`${API_BASE_URL}/api/screener/rule-of-40`, {
+      next: { revalidate: CACHE_DURATION.ONE_DAY }, // 24시간 캐싱
     });
 
     if (!response.ok) {

@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-interface LogEntry {
-  timestamp: string;
-  level: "info" | "warn" | "error";
-  message: string;
-  job: string;
-  metadata?: Record<string, any>;
-}
+import { API_BASE_URL } from "@/lib/constants";
+import { LogEntry } from "@/types/etl";
 
 interface LogsResponse {
   success: boolean;
@@ -39,14 +33,9 @@ async function getETLLogs(
       limit: limit.toString(),
     });
 
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      }/api/etl/logs?${params}`,
-      {
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/api/etl/logs?${params}`, {
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       throw new Error("Failed to fetch ETL logs");

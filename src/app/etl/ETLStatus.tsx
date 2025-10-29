@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/constants";
+import { ETLStatus as ETLStatusType } from "@/types/etl";
 
 export function ETLStatus() {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<ETLStatusType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const response = await fetch("/api/etl/status", {
+        const response = await fetch(`${API_BASE_URL}/api/etl/status`, {
           cache: "no-store",
         });
 

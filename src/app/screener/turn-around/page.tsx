@@ -1,12 +1,12 @@
 import React from "react";
 import { TurnAroundClient } from "./TurnAroundClient";
 import { Navigation } from "@/components/navigation";
+import { API_BASE_URL, CACHE_DURATION } from "@/lib/constants";
 
 async function fetchTurnAroundData() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/screener/turned-profitable`, {
-      next: { revalidate: 60 * 60 * 24 }, // 24시간 캐싱
+    const response = await fetch(`${API_BASE_URL}/api/screener/turned-profitable`, {
+      next: { revalidate: CACHE_DURATION.ONE_DAY }, // 24시간 캐싱
     });
 
     if (!response.ok) {

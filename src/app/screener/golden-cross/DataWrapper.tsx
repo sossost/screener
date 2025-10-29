@@ -1,6 +1,7 @@
 import React from "react";
 import GoldenCrossClient from "./GoldenCrossClient";
-import { CACHE_TAGS } from "@/lib/cache-config";
+import { CACHE_TAGS } from "@/lib/constants";
+import { API_BASE_URL, CACHE_DURATION } from "@/lib/constants";
 
 type SearchParams = {
   justTurned?: string;
@@ -34,13 +35,12 @@ async function fetchGoldenCrossData(searchParams: SearchParams) {
   // 캐시 태그 생성 (필터별로 다른 태그 - 모든 필터 포함)
   const cacheTag = `golden-cross-${justTurned}-${lookbackDays}-${profitability}-${revenueGrowth}-${revenueGrowthQuarters}-${incomeGrowth}-${incomeGrowthQuarters}`;
 
-  // 서버 사이드에서 내부 API 호출 (localhost 사용)
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  // 서버 사이드에서 내부 API 호출
   const response = await fetch(
-    `${baseUrl}/api/screener/golden-cross?${params.toString()}`,
+    `${API_BASE_URL}/api/screener/golden-cross?${params.toString()}`,
     {
       next: {
-        revalidate: 60 * 60 * 24, // 24시간 캐싱
+        revalidate: CACHE_DURATION.ONE_DAY, // 24시간 캐싱
         tags: [CACHE_TAGS.GOLDEN_CROSS, cacheTag],
       },
     }

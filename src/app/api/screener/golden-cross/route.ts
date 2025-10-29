@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
+import { handleApiError, logError } from "@/lib/errors";
 
 // 동적 라우트 강제 (쿼리 파라미터 사용)
 export const dynamic = "force-dynamic";
@@ -318,37 +319,16 @@ export async function GET(req: Request) {
       lookback_days: justTurned ? lookbackDays : null,
       data,
     });
-  } catch (e: any) {
-    console.error("Golden Cross API Error:", e);
-    
-    // 데이터베이스 연결 에러 체크
-    if (e.message?.includes("connection") || e.message?.includes("database")) {
-      return NextResponse.json(
-        { 
-          error: "Database connection failed", 
-          details: process.env.NODE_ENV === "development" ? e.message : "Internal server error"
-        }, 
-        { status: 503 }
-      );
-    }
-    
-    // 환경변수 에러 체크
-    if (e.message?.includes("DATABASE_URL") || e.message?.includes("FMP_API_KEY")) {
-      return NextResponse.json(
-        { 
-          error: "Environment variables not configured", 
-          details: process.env.NODE_ENV === "development" ? e.message : "Configuration error"
-        }, 
-        { status: 500 }
-      );
-    }
-    
+  } catch (error) {
+    logError(error, "Golden Cross API");
+    const apiError = handleApiError(error);
+
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
-        details: process.env.NODE_ENV === "development" ? e.message : "Something went wrong"
-      }, 
-      { status: 500 }
+      {
+        error: apiError.message,
+        details: apiError.details,
+      },
+      { status: apiError.statusCode }
     );
   }
 }
